@@ -191,6 +191,7 @@
     <ClCompile Include="DemoTasks\SimpleUDPClientAndServer.c" />
     <ClCompile Include="DemoTasks\SimpleTCPEchoServer.c" />
     <ClCompile Include="demo_logging.c" />
+    <ClCompile Include="Encrypt\rsa.c" />
     <ClCompile Include="main.c">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>

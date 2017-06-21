@@ -320,7 +320,7 @@ pixel_t *canny_edge_detection(const pixel_t *in,
     pixel_t *after_Gy = calloc(nx * ny * sizeof(pixel_t), 1);
     pixel_t *nms = calloc(nx * ny * sizeof(pixel_t), 1);
     pixel_t *out = malloc(bmp_ih->bmp_bytesz * sizeof(pixel_t));
-	printf("PIXELs %d\n", bmp_ih->bmp_bytesz);
+	printf("[CANNY]: PIXELs %d\n", bmp_ih->bmp_bytesz);
 	chunksize = bmp_ih->bmp_bytesz;
 
     if (G == NULL || after_Gx == NULL || after_Gy == NULL ||
@@ -429,8 +429,7 @@ pixel_t *canny_edge_detection(const pixel_t *in,
     return out;
 }
 int imagestate = 1;
-int cannymain()
-{
+int cannymain(){
  /*Load 5 different images to have different computation time*/
     static bitmap_info_header_t ih;
 	const pixel_t *in_bitmap_data;
@@ -479,7 +478,36 @@ int cannymain()
 	//sendbuf.value = out_bitmap_data;
 	int g = 0;
 	int counter = 0;
-	for (g = 0; g < chunksize; g++) { sendbuf.value[g] = out_bitmap_data[g]; }
+
+
+	char temp[65538];
+#if 0
+	printf("PIXEL %d\n", sizeof(pixel_t));
+	printf("SHORT INT %d\n", sizeof(short int));
+#endif
+#if 0
+	FILE *fp = fopen("client.txt", "w+"); /* open file for writing */
+	for (i = 0; i < 65538; i++)            /* print each integer   */
+		if (i == 0)
+			fprintf(fp, " %d", out_bitmap_data[i]);
+		else
+			fprintf(fp, ", %d", out_bitmap_data[i]);
+
+	fclose(fp);
+#endif
+
+	for (g = 0; g < chunksize; g++) {
+#if 0
+		printf("%d ", out_bitmap_data[g]);
+		if ((g % 60) == 0)
+			printf("\n");
+#endif
+		sendbuf.value[g] = out_bitmap_data[g]; 
+		temp[g] = (char)out_bitmap_data[g];
+	}
+	FILE *ff = fopen("edge.txt", "w");
+	fwrite(temp, sizeof(char), 65538, ff);
+	fclose(ff);
 #if 0
 		if (out_bitmap_data[g] != 0) {
 			printf("%d %d\n", g, out_bitmap_data[g]);

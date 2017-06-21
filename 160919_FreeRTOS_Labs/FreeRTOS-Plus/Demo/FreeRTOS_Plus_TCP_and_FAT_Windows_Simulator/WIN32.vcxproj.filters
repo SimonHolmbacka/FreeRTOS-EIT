@@ -63,6 +63,9 @@
     <Filter Include="Canny">
       <UniqueIdentifier>{4c56e994-d381-44e4-b141-025c69492c8b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Encrypt">
+      <UniqueIdentifier>{dfc89bdd-9bb4-471b-bf6d-a1f98d2fd487}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\FreeRTOS\Source\portable\MSVC-MingW\port.c">
@@ -218,6 +221,9 @@
     </ClCompile>
     <ClCompile Include="Canny\canny.c">
       <Filter>Canny</Filter>
+    </ClCompile>
+    <ClCompile Include="Encrypt\rsa.c">
+      <Filter>Encrypt</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

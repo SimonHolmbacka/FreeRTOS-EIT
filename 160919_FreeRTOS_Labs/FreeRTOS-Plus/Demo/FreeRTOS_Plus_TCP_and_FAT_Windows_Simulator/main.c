@@ -75,6 +75,12 @@
 /*Decoder includes*/
 #include "canny.h"
 
+/*Encryption includes*/
+#include "Encrypt/rsa.h"
+typedef struct charMessage {
+	char * value;
+}charMessage;
+
 #define ENDTIMER 1000
 
 /* UDP command server task parameters. */
@@ -294,16 +300,20 @@ static TaskHandle_t xServerWorkTaskHandle = NULL;
 
 volatile int globalstop = 0;
 int chunksize;
+char * ebuf;
 
 /*Message queues*/
 QueueHandle_t cannyQueue;
 QueueHandle_t encryptQueue;
 
+#define STARTSOCKET 1
+#define STARTCANNY 1
+#define STARTENCRYPT 1
 /*-----------------------------------------------------------*/
 
-#define STARTCANNY 1
+
 void cannyTask() {
-	int imagestofilter = 5;
+	int imagestofilter = 1;
 	while (1) {
 		//vTaskDelay(100);
 		cannymain();
@@ -318,15 +328,15 @@ void cannyTask() {
 	}
 }
 
-#define STARTENCRYPT 0
+
 void encryptTask() {
 	vTaskDelay(100);
 	int g;
-	typedef short int pixel_t;
+
 	cannyMessage recbuf;
-	recbuf.value = (pixel_t*)pvPortMalloc(chunksize * sizeof(pixel_t)); 
-	cannyMessage sendbuf; //This is the encrypted data that will be sent to the SendTask
-	sendbuf.value = (pixel_t *)malloc(chunksize * sizeof(pixel_t));
+	recbuf.value = (pixel_t*)pvPortMalloc(chunksize * sizeof(pixel_t));
+	charMessage sendbuf; 
+	sendbuf.value = (char *)pvPortMalloc(chunksize * sizeof(char));
 
 	while (1) {
 		printf("[ENCRYPT]: Getting data from queue...\n");
@@ -335,14 +345,17 @@ void encryptTask() {
 				printf("[ENCRYPT]: Data received!\n");
 			}
 		}
+
+		encryptmain(&recbuf);
 #if 0
-		for (g = 1050; g < 1060; g++) {
-			printf("%d\n", recbuf.value[g]);
+		printf("Encrypted message in main\n");
+		for (g = 0; g < 600; g++) {
+			printf("%c ",ebuf[g]);
 		}
 #endif
-		/*Instead of the following copying it should be the actual encryption*/
+
 		for (g = 0; g < chunksize; g++)
-			sendbuf.value[g] = (pixel_t)recbuf.value[g];
+			sendbuf.value[g] = ebuf[g];
 
 		printf("[ENCRYPT]: Sending data to socket task...\n");
 		if (encryptQueue != 0) {
@@ -359,20 +372,19 @@ void encryptTask() {
 	}
 }
 
-#define STARTSOCKET 0
+
 void socketTask() {
 	vTaskDelay(300);
 	int g;
 	Socket_t edgesocket;
 	struct freertos_sockaddr xRemoteAddress;
 	struct freertos_sockaddr xBindAddress;
-	int xTotalLengthToSend = chunksize;
+	int xTotalLengthToSend = chunksize; 
 	size_t xLenToSend;
 	BaseType_t xAlreadyTransmitted = 0, xBytesSent = 0;
-	xRemoteAddress.sin_port = FreeRTOS_htons(8888);
-	xRemoteAddress.sin_addr = FreeRTOS_inet_addr_quick(192, 168, 11, 13);
+	xRemoteAddress.sin_port = FreeRTOS_htons(9999);
+	xRemoteAddress.sin_addr = FreeRTOS_inet_addr_quick(192, 168, 11, 28);
 	edgesocket = FreeRTOS_socket(FREERTOS_AF_INET, FREERTOS_SOCK_STREAM, FREERTOS_IPPROTO_TCP);
-	
 	/* Check the socket was created successfully. */
 	if (edgesocket != FREERTOS_INVALID_SOCKET){
 		printf("[SOCKET]: Socket is ok!\n");
@@ -390,42 +402,41 @@ void socketTask() {
 	}
 	
 	/*Message queue*/
-	cannyMessage recbuf;
-	recbuf.value = (pixel_t*)pvPortMalloc(chunksize * sizeof(pixel_t));
+	charMessage recbuf;
+	recbuf.value = (char*)pvPortMalloc(chunksize * sizeof(char));
 
 	printf("[SOCKET]: Trying to connect socket...\n");
 	if (FreeRTOS_connect(edgesocket, &xRemoteAddress, sizeof(xRemoteAddress)) == 0){
 		printf("Connected to socket!\n");
 		int s;
 		/*FOR LOOP******************/
-		for (s = 0; s < 5;s++){
-			printf("[SOCKET]: Getting data from queue...\n");
-			if (encryptQueue != 0) {
-				if (xQueueReceive(encryptQueue, &recbuf, (TickType_t)10) == pdPASS) {
-					printf("[SOCKET]: Data received!\n");
-				}
+
+		printf("[SOCKET]: Getting data from queue...\n");
+		if (encryptQueue != 0) {
+			if (xQueueReceive(encryptQueue, &recbuf, (TickType_t)10) == pdPASS) {
+				printf("[SOCKET]: Data received!\n");
 			}
-#if 1
-			for (g = 1050; g < 1060; g++) {
-				printf("[SOCKET]: %d\n", recbuf.value[g]);
-			}
-#endif
-			printf("[SOCKET]: Sending data over socket...\n");
-			while (xAlreadyTransmitted < xTotalLengthToSend){
-				xLenToSend = xTotalLengthToSend - xAlreadyTransmitted;
-				xBytesSent = FreeRTOS_send(edgesocket,&(recbuf.value[xAlreadyTransmitted]), xTotalLengthToSend,0);
-				if (xBytesSent >= 0){
-					/* Data was sent successfully. */
-					xAlreadyTransmitted += xBytesSent;
-				}
-				else{
-					break;
-				}
-			}
-			xAlreadyTransmitted = 0;
-			xBytesSent = 0;
-			vTaskDelay(100);
 		}
+
+		printf("[SOCKET]: Sending data over socket...\n");
+		while (xAlreadyTransmitted < xTotalLengthToSend){
+			xLenToSend = xTotalLengthToSend - xAlreadyTransmitted;
+			xBytesSent = FreeRTOS_send(edgesocket,&(recbuf.value[xAlreadyTransmitted]), xTotalLengthToSend,0);
+			if (xBytesSent >= 0){
+				/* Data was sent successfully. */
+				printf("Success!\n");
+				xAlreadyTransmitted += xBytesSent;
+			}
+			else{
+				printf("[SOCKET]: Some error in sending the data over TCP!");
+				break;
+			}
+		}
+		xAlreadyTransmitted = 0;
+		xBytesSent = 0;
+		printf("[SOCKET]: Done sending!\n");
+		//vTaskDelay(100);
+
 		globalstop = 1;
 		printf("[SOCKET]: Shutting down socket\n");
 		FreeRTOS_shutdown(edgesocket, FREERTOS_SHUT_RDWR);
@@ -446,13 +457,17 @@ void socketTask() {
 		while(1)
 			vTaskDelay(ENDTIMER);
 	}
+	else {
+		printf("[SOCKET]: Socket not connected!\n");
+	}
 }
 
 
-/*Issues
+/*Issues Todo
 -Must copy content from bitmap to sendbuffer (switching pointers does not work somehow)
 -Tasks do not wait for queues to fill up. Now implemented with different sleep times before tasks start
--Encryption still missing
+-Dynamic image sizes in rsa and encryption task
+-Send many images
 */
 int main( void )
 {
@@ -500,13 +515,13 @@ TimerHandle_t xCheckTimer;
 	static TaskHandle_t xEncryptHandle = NULL;
 	static TaskHandle_t xSocketHandle = NULL;
 #if (STARTCANNY == 1)
-	xTaskCreate(cannyTask, "Canny", 10000, NULL, 4, &xCannyHandle);
+	xTaskCreate(cannyTask, "Canny", 100000, NULL, 4, &xCannyHandle);
 #endif
 #if (STARTENCRYPT == 1)
-	xTaskCreate(encryptTask, "Encrypt", 10000, NULL, 3, &xEncryptHandle);
+	xTaskCreate(encryptTask, "Encrypt", 100000, NULL, 3, &xEncryptHandle);
 #endif
 #if (STARTSOCKET == 1)
-	xTaskCreate(socketTask, "Socket", 10000, NULL, 2, &xSocketHandle);
+	xTaskCreate(socketTask, "Socket", 100000, NULL, 2, &xSocketHandle);
 #endif
 	cannyQueue = xQueueCreate(10, sizeof(cannyMessage)); //Queue from canny to encrypt
 	encryptQueue = xQueueCreate(10, sizeof(cannyMessage)); //Queue from encrypt to socket
