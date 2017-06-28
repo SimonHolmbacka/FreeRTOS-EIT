@@ -336,7 +336,7 @@ void encryptTask() {
 	cannyMessage recbuf;
 	recbuf.value = (pixel_t*)pvPortMalloc(chunksize * sizeof(pixel_t));
 	charMessage sendbuf; 
-	sendbuf.value = (char *)pvPortMalloc(chunksize * sizeof(char));
+	sendbuf.value = (char *)pvPortMalloc(600 * sizeof(char)); //Should be chunksize
 
 	while (1) {
 		printf("[ENCRYPT]: Getting data from queue...\n");
@@ -346,20 +346,25 @@ void encryptTask() {
 			}
 		}
 
-		encryptmain(&recbuf);
-#if 0
+		encryptmain(&recbuf); //Here it makes the message weird
+
+
+//IT is correct here in recbuf.
+
+#if 1
 		printf("Encrypted message in main\n");
 		for (g = 0; g < 600; g++) {
 			printf("%c ",ebuf[g]);
+			//printf("%d ", (int)ebuf[g]);
 		}
 #endif
 
-		for (g = 0; g < chunksize; g++)
+		for (g = 0; g < 600; g++) //Should be chunksize
 			sendbuf.value[g] = ebuf[g];
 
 		printf("[ENCRYPT]: Sending data to socket task...\n");
 		if (encryptQueue != 0) {
-			if (xQueueSendToBack(encryptQueue, &sendbuf, (TickType_t)10) != pdPASS) {
+			if (xQueueSendToBack(encryptQueue, &sendbuf, (TickType_t)20) != pdPASS) {
 				printf("Queue is full\n");
 			}
 		}
@@ -379,7 +384,7 @@ void socketTask() {
 	Socket_t edgesocket;
 	struct freertos_sockaddr xRemoteAddress;
 	struct freertos_sockaddr xBindAddress;
-	int xTotalLengthToSend = chunksize; 
+	int xTotalLengthToSend = 600; //Should be chunksize 
 	size_t xLenToSend;
 	BaseType_t xAlreadyTransmitted = 0, xBytesSent = 0;
 	xRemoteAddress.sin_port = FreeRTOS_htons(9999);

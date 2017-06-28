@@ -11,6 +11,7 @@
 #define COUNT 600
 #define SIZE 64642
 
+//#define SIZE 600
 
 int chunksize;
 long int p, q, n, t, flag, j, i;
@@ -32,8 +33,8 @@ int counter = 0;
 
 void encryptmain(cannyMessage * can) {
 	//printf("MAIN: Chunksize %d\n", chunksize);
-    p = 199;
-    q = 191;
+    p = 7;
+    q = 5;
 	
 	for (i = 0; can->value[i] == 0 || can->value[i] == 255; i++) {
 		counter++;
@@ -49,13 +50,19 @@ void encryptmain(cannyMessage * can) {
 	msg = (char *)malloc(sizeof(char) * counter);
 
 	//msg = (char *)malloc(sizeof(char) * counter);
-	//printf("\nHere is the canny message\n");
+	printf("\nHere is the canny message to encrypt\n");
 	for (i = START; i < COUNT; i++) {
 		//printf("%c ", (char)can->value[i]+'0');
 		msg[i] = (char)can->value[i]+'0';
 	}
-    for(i=0;msg[i]!=NULL;i++) 
-        m[i]=msg[i]; 
+
+	int counter = 0;
+	//for (i = 0; msg[i] != NULL; i++) {
+	for (i = 0; i < COUNT; i++) {
+		counter++;
+		m[i] = msg[i];
+	}
+	printf("Counter %d\n", counter);
     n=p*q; 
     t=(p-1)*(q-1); 
     ce(); 
@@ -70,7 +77,7 @@ void encryptmain(cannyMessage * can) {
 #if 0
 	printf("\nHere is the encrypted message after return as char\n");
 	for (i = START; i < COUNT; i++) {
-		printf("%c ", en[i]);
+		printf("%c ", ebuf[i]);
 	}
 #endif
     //decrypt(); 
@@ -118,17 +125,21 @@ void encrypt() {
     i=0; 
     //len=strlen(msg); 
 	len = SIZE;
-	printf("Len %d\n", len);
+	//printf("Len %d\n", len);
     while(i!=len) { 
         pt=m[i]; 
         pt=pt-96; 
-        k=1; 
+        k=1;
+		//printf("Key: %ld ", key);
         for(j=0;j<key;j++)  { 
             k=k*pt; 
-            k=k%n; 
+            k=k%n;
+			//printf("k %ld\n", n);
         } 
-        temp[i]=k; 
+        temp[i]=k;
+		//printf("%ld", k); //-31 
         ct=k+96; 
+		//printf("CT %ld\n", ct);
         en[i]=ct; 
         i++; 
     } 
@@ -151,6 +162,7 @@ void decrypt() {
     i=0; 
     while(en[i]!=-1) { 
         ct=temp[i]; 
+		//printf("Temp %ld ", temp[i]);
         k=1; 
         for(j=0;j<key;j++)  { 
             k=k*ct; 
@@ -158,11 +170,15 @@ void decrypt() {
         } 
         pt=k+96; 
         m[i]=pt; 
+		//printf("k%ld ", k);
+		//printf("%ld ", m[i]);
         i++; 
     } 
-    m[i]=-1; 
+    m[i]=-1;
+#if 0
     printf("\nTHE DECRYPTED MESSAGE IS\n"); 
     for(i=0;m[i]!=-1;i++) 
         printf("%c",m[i]); 
+#endif
 }
 #endif
